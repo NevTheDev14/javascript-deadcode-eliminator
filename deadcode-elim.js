@@ -10,7 +10,9 @@ var readline = require('readline').createInterface({
 var inFunction = {
 	inScope: false,
 	name: '',
-	funcBody: []
+	funcBody: [],
+	refFuncs: [],
+	parameters: []
 }
 
 var variable = {
@@ -24,8 +26,9 @@ var variable = {
 var func = {
 	name: "",
 	body: "",
-	parameters: "",
+	parameters: [],
 	global: false,
+	refFuncs: [],
 	isUsed: false
 }
 
@@ -33,7 +36,7 @@ var func = {
 var program = {
 	variables: [],		// Array of variable objects
 	functions: [],		// Array of func objects
-	statments: []		// Array of lines (Strings)
+	statements: []		// Array of lines (Strings)
 }
 
 //iterate line by line through file
@@ -41,25 +44,10 @@ readline
 .on('line', (line) => {
 	//parse line
 
-	if (line.search("}") != -1 && inFunction.inScope == true){
-		// program.functions[program.functions.indexOf(inFunction.name)].body = inFunction.funcBody;
-
-		const newFunc = Object.create(func);
-		newFunc.name = inFunction.name;
-		newFunc.global = true;
-		newFunc.body = inFunction.funcBody;
-		newFunc.isUsed = false;
-		program.functions.push(newFunc);
-
-		inFunction.inScope = false;
-		inFunction.name = "";
-		inFunction.funcBody = [];
-	}
-
 	var varPos = line.search("var");
 	if (varPos != -1){
 		var varName;
-		var varValue = undefined;
+		var varValue = null;
 		// Check if variable is initialized by searching for "="
 		if (line.search("=") != -1){
 			//line format: "var " + varName + " = " + someValue + ";"
@@ -97,7 +85,7 @@ readline
 		}
 		else {
 			newVar.global = true;
-			newVar.parentFunc = undefined;
+			newVar.parentFunc = null;
 		}
 
 		program.variables.push(newVar);
@@ -107,9 +95,20 @@ readline
 	var funcPos = line.search("function");
 	if (funcPos != -1) {
 		var funcName;
+		var params = [];
 
 		funcName = line.slice(funcPos + 8, line.indexOf("("));
 		funcName = funcName.replace(/\s/g,'');
+
+		if (line.slice(line.indexOf('('), line.indexOf(')')).replace(/\s/g,'') != "()"){
+			var tmpStr = line.slice(line.indexOf('(')+1, line.indexOf(')')).replace(/\s/g,'');
+			if (tmpStr.length == 1){
+				params.push(tmpStr);
+			} 
+			else{
+				params = tmpStr.split(",");
+			}
+		}
 
 		// console.log(funcName);
 
@@ -122,6 +121,7 @@ readline
 				if (line[i] == "{"){
 					inFunction.inScope = true;
 					inFunction.name = funcName;
+					inFunction.parameters = params;
 				}
 
 				if(line[i] == "}" && inFunction.inScope == true){
@@ -132,19 +132,57 @@ readline
 		}
 	}
 
+	if (inFunction.inScope == false && funcPos == -1 && varPos == -1){
+		//if neither a function or variable, and is outside of a function then this line is a global statment/expression
+		program.statements.push(line);
+	}
 
-	if (inFunction.inScope == true && varPos == -1 && funcPos == -1){
+	if (inFunction.inScope == true){
 		inFunction.funcBody.push(line);
 	}
 
-	if (inFunction.inScope == false && funcPos == -1 && varPos == -1){
-		//if neither a function or variable, and is outside of a function then this line is a global statment/expression
-		program.statments.push(line);
-	}
+	if (line.search("}") != -1 && inFunction.inScope == true){
+		// program.functions[program.functions.indexOf(inFunction.name)].body = inFunction.funcBody;
+
+		const newFunc = Object.create(func);
+		newFunc.name = inFunction.name;
+		newFunc.global = true;
+		newFunc.body = inFunction.funcBody;		
+		newFunc.isUsed = false;
+		newFunc.parameters = inFunction.parameters;
+
+		inFunction.funcBody.forEach((i, index) => {
+			if (index != 0 && i.indexOf('(') != -1 && i.indexOf(')') != -1){
+				inFunction.refFuncs.push(i);
+				// console.log(index);
+			}
+		});
+
+		newFunc.refFuncs = inFunction.refFuncs;
+
+		program.functions.push(newFunc);
+
+		inFunction.inScope = false;
+		inFunction.name = "";
+		inFunction.funcBody = [];
+		inFunction.refFuncs = [];
+		inFunction.parameters = [];
+	}	
+
+
 	// var funcPos = line.search("function");
 })
 .on('close', () => {
+	program.statments = program.statements.filter(String);
 	console.log(JSON.stringify(program));
+
+	// elimination part
+	// program.statements.forEach((statement) => {
+	// 	if(statement.search(" = ") != -1){}
+	// 	if(statement.search("(") && statement.search(")") != -1){}
+	// });
+
+	fs.writeFile('minified-test.json', JSON.stringify(program), 'utf8');
 });
 
 

@@ -4,18 +4,22 @@
          "name":"a",
          "value":"'Hello!'",
          "isUsed":false,
-         "global":true
+         "global":true,
+         "parentFunc":null
       },
       {  
          "name":"b",
          "value":"'Goodbye'",
          "isUsed":false,
-         "global":true
+         "global":true,
+         "parentFunc":null
       },
       {  
          "name":"x",
+         "value":null,
          "isUsed":false,
-         "global":true
+         "global":true,
+         "parentFunc":null
       },
       {  
          "name":"c",
@@ -37,26 +41,40 @@
          "name":"showMessage",
          "global":true,
          "body":[  
-            "\tconsole.log(a);"
+            "function showMessage(a) {",
+            "\tconsole.log(a);",
+            "}"
          ],
-         "isUsed":false
+         "isUsed":false,
+         "parameters":[  
+            "a"
+         ],
+         "refFuncs":[  
+            "\tconsole.log(a);"
+         ]
       },
       {  
          "name":"addMessage",
          "global":true,
          "body":[  
+            "function addMessage(a, b){",
+            "\tvar c = a + \" \" + b;",
+            "\tvar d = 6;",
             "",
-            "\treturn c;"
+            "\treturn c;",
+            "}"
          ],
-         "isUsed":false
+         "isUsed":false,
+         "parameters":[  
+            "a",
+            "b"
+         ],
+         "refFuncs":[  
+
+         ]
       }
    ],
    "statments":[  
-      "",
-      "}",
-      "",
-      "}",
-      "",
       "showMessage(a);"
    ]
 }
